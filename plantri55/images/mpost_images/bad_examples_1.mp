@@ -65,6 +65,7 @@ draw p4--p10;
 draw p12--p14;
 draw p12--p3--p11--p4--p14--p10--p13;
 draw p1--(p1 + (2u, -2u));
+draw p10--(p10 + (-2u, -2u));
 
 pair h[];
 h1:= p3 + 0.2*(p3 - p4);

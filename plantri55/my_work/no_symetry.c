@@ -31,13 +31,13 @@ static int no_symetry(int nbtot, int nbop, int doflip){
                     if (testcanon_mirror(e, representation, rcolour) == 1){
                         same_representation++;
                     }
-                    if (same_representation > 0){
-                        return FALSE;
+                    if (same_representation > 10){
+                        return TRUE;
                     }
                 }
                 e = e->next;
             }
         }
     }
-    return TRUE;
+    return FALSE;
 }

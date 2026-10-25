@@ -177,6 +177,9 @@ plantri_${NL}: plantri.c ./${MY_WORK}/${NL}.c
 plantri_real_${NL}: plantri.c ./${MY_WORK}/real_${NL}.c
 	${CC} -o ./bin/real_${NL} ${CFLAGS} '-DPLUGIN="./${MY_WORK}/real_${NL}.c"' plantri.c ${LDFLAGS} -ggdb3
 
+plantri_2_ladders: plantri.c ./${MY_WORK}/not_many_ladders.c
+	${CC} -o ./bin/not_many_ladders ${CFLAGS} '-DPLUGIN="./${MY_WORK}/not_many_ladders.c"' plantri.c ${LDFLAGS} -ggdb3
+
 MP=my_plantri
 my_plantri: ${MY_WORK}/${MP}.c
 	${CC} -o ${MP} ${CFLAGS} ${MY_WORK}/${MP}.c ${LDFLAGS} -ggdb3

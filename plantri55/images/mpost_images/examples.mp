@@ -132,7 +132,7 @@ for i=1 upto 3: draw p[i]--orig; endfor;
 
 drawArrow(((p1+p3)/2 + p2)/2 + (4u, 0), 5u);
 LabelScale:= 3;
-label.top(btex $E_3, E_4$ etex scaled LabelScale, ((p1+p3)/2 + p2)/2 + (6.5u, 0));
+label.top(btex $E_3$ etex scaled LabelScale, ((p1+p3)/2 + p2)/2 + (6.5u, 0));
 
 orig:= orig + (13u, 0);
 

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-    
-canon_code = list(map(int,input().split()))
 
+# accepts code starting with the colour of the first vertex
+canon_code = list(map(int,input().split(",")))
+canon_code = canon_code[1:]
 nv = 0
 for i in canon_code:
     if i == 0:
@@ -29,13 +30,8 @@ index = 0
 max_discovered = 1
 for curr in range(nv):
     while canon_code[index] != 0:
-        if (canon_code[index] > nv):
-            max_discovered += 1
-            adj_matrix[curr][max_discovered] = 1
-            adj_matrix[max_discovered][curr] = 1
-        else:
-            adj_matrix[curr][canon_code[index] - 1] = 1
-            adj_matrix[canon_code[index] - 1][curr] = 1
+        adj_matrix[curr][(canon_code[index] - 1) % nv] = 1
+        adj_matrix[(canon_code[index] - 1) % nv][curr] = 1
         
         index += 1
     index += 1
