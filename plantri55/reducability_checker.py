@@ -75,12 +75,14 @@ for i in range(len(possible_n)):
         rg += line
     rg_json: dict[str, list[list[str]]] = json.loads(rg)
     
-    for j in range(len(possible_n), i+1, -1):
+    for j in range(i+1, len(possible_n)):
         reductors_file = open(f"reduced_graphs/{possible_n[j]}.txt", "r")
         reductors = ""
         for line in reductors_file:
             reductors += line
 
+        #print(reduced_graphs_file.name)
+        #print(reductors_file.name)
         reduc: dict[str, list[list[str]]] = json.loads(reductors)
 
         file = open(f"reduced_pairs/{possible_n[i]}->{possible_n[j]}.txt", "w")
@@ -91,6 +93,7 @@ for i in range(len(possible_n)):
                 needs_to_cover = reduc[rdc]
                 is_cover = True    
                 if is_covering(needs_to_cover, pos_hams):
+                    #print("{\"" + graph + "\": \"" + rdc + "\"}")
                     adj_matrix1 = can_to_mat(graph[1:-1])
                     adj_matrix2 = can_to_mat(rdc[1:-1])
                     
