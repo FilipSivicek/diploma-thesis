@@ -74,33 +74,28 @@ for i in range(len(possible_n)):
     for line in reduced_graphs_file:
         rg += line
     rg_json: dict[str, list[list[str]]] = json.loads(rg)
-    
-    for j in range(i+1, len(possible_n)):
-        reductors_file = open(f"reduced_graphs/{possible_n[j]}.txt", "r")
-        reductors = ""
-        for line in reductors_file:
-            reductors += line
 
-        #print(reduced_graphs_file.name)
-        #print(reductors_file.name)
-        reduc: dict[str, list[list[str]]] = json.loads(reductors)
-
-        file = open(f"reduced_pairs/{possible_n[i]}->{possible_n[j]}.txt", "w")
+    with open(f"reduced_pairs/{possible_n[i]}.txt", "w") as f:
         for graph in rg_json:
-            pos_hams = rg_json[graph]
+            found_reducer = False
+            available = rg_json[graph]
 
-            for rdc in reduc:
-                needs_to_cover = reduc[rdc]
-                is_cover = True    
-                if is_covering(needs_to_cover, pos_hams):
-                    #print("{\"" + graph + "\": \"" + rdc + "\"}")
-                    adj_matrix1 = can_to_mat(graph[1:-1])
-                    adj_matrix2 = can_to_mat(rdc[1:-1])
-                    
-                    with open(f"reduced_pairs/{possible_n[i]}->{possible_n[j]}.txt", "a") as f:
+            for j in range(len(possible_n) - 1, i, -1):
+                reductors_file = open(f"reduced_graphs/{possible_n[j]}.txt", "r")
+                reductors = ""
+                for line in reductors_file:
+                    reductors += line
+                reduc: dict[str, list[list[str]]] = json.loads(reductors)
+
+                for rdc in reduc: 
+                    needs_to_cover = reduc[rdc]
+                    if is_covering(needs_to_cover, available):
+                        adj_matrix1 = can_to_mat(graph[1:-1])
+                        adj_matrix2 = can_to_mat(rdc[1:-1])
+                        
                         nv = len(adj_matrix1)
                         f.write(graph + ": \n")
-                        f.write(str(pos_hams) + "\n")
+                        f.write(str(available) + "\n")
                         for k in range(nv):
                             f.write(" ".join(map(str, adj_matrix1[k])) + "\n")
                         nv = len(adj_matrix2)
@@ -108,3 +103,7 @@ for i in range(len(possible_n)):
                         f.write(str(needs_to_cover) + "\n")
                         for k in range(nv):
                             f.write(" ".join(map(str, adj_matrix2[k])) + "\n")
+
+                        found_reducer = True
+                        break
+                if found_reducer: break
