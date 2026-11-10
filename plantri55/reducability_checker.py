@@ -67,7 +67,7 @@ def is_covering(needs:list[list[str]], pos: list[list[str]]) -> bool:
                 
     return False
 
-possible_n = [13, 12, 11, 10, 9, 6, 5]
+possible_n = [15, 14, 13, 12, 11, 10, 9, 6, 5]
 for i in range(len(possible_n)):
     reduced_graphs_file = open(f"reduced_graphs/{possible_n[i]}.txt", "r")
     rg = ""

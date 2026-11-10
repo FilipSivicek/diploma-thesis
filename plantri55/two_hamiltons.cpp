@@ -31,14 +31,14 @@ string vec_to_str(vector<int> v){
 template <typename K, typename V>
 std::ostream& operator<<(std::ostream& os, const std::map<K, V>& m)
 {
-    os << "{";
+    os << "{\n";
     bool first = true;
     for (const auto& [key, value] : m) {
-        if (!first) os << ", ";
+        if (!first) os << ",\n";
         first = false;
         os << "\"" << key << "\": " << value;
     }
-    os << "}";
+    os << "\n}";
     return os;
 }
 
@@ -101,7 +101,6 @@ vector<int> calc_canon_code(vector<int> square, int n, int m, vector<vector<int>
             }
         }
     }
-
     return real_cannon_code;
 }
 
@@ -116,75 +115,37 @@ vector<int> common_neighbours(int v1, int v2, vector<vector<int>> &adj_list, vec
     return ans;
 }
 
-bool check_single(int start, int end, long long n, vector<int> forb, vector<vector<int>>& adj) {
-    long long full = (1 << n) - 1;
+/*
+@param curr current vertex that is being processed
+@param end final vertex. needs to be set appropriatelly for multiple hamiltons paths crossing this gadget
+@param n total number of vertices in this gadget (ends of half edges are represented as vertices)
+@param need_to_cover edges, which needs to be covered by hamiltonians paths. It is used when this algorithm
+is used to check for multiple hamiltonians paths. For 6+ poles you may need to add some edges so that this can work.
+Key - v1:v2
+@param not_covered number of edges which need to covered by hamiltonian paths but are not yet covered. Hamiltonian path
+needs to cover some edges in case of mutliple paths in one gadget
+@param forbiden edges which can not be used
+@param mask mask of visited vertices. Used to indicate unavailable vertices for paths, which leave some of the
+half edges not covered
+@param adj_list adjacency list
 
-    // dp[mask][v] is true if some path visits exactly the vertices
-    // in mask and ends at vertex v
-    vector<vector<bool>> dp(1 << n, vector<bool>(n, false));
-    dp[1 << start][start] = true;
+@return true if there exists hamilton path starting at curr ending at end, not visiting masked vertices and covering all edges from need_to_cover.
+*/
+bool find_hamilton(int curr, int end, int n, unordered_set<string> &need_to_cover, int not_covered_count, unordered_set<string> &forbiden, long long int mask, vector<vector<int>> &adj_list){
+    mask = mask | (1 << curr);
+    if (curr == end){
+        return mask == ((1 << n) - 1) && (not_covered_count == 0);
+    }
 
-    for (long long mask = 1; mask <= full; mask++) {
-        for (int v = 0; v < n; v++) {
-
-            // skip vertices that are not in the mask or cannot end a path
-            if (!((mask >> v) & 1) || !dp[mask][v])
-                continue;
-
-            // extend the path to an unused neighbour u
-            for (int u = 0; u < n; u++) {
-                if (!((mask >> u) & 1) && adj[v][u])
-                    dp[mask | (1 << u)][u] = true;
-            }
+    for (auto vert: adj_list[curr]){
+        int is_satisfied = 0;
+        string key = to_string(curr) + ":" + to_string(vert);
+        if (need_to_cover.contains(key)){
+            is_satisfied = 1;
         }
-    }
-
-    for (auto i: forb){
-        full = full ^ (1 << i);
-    }
-
-    return dp[full][end];
-}
-
-bool check_double(int s1, int e1, int s2, int e2, long long n, vector<vector<int>> adj){
-    vector<vector<int>> adj_copy = adj;
-    adj_copy[s1][e1] = 0;
-    adj_copy[s1][s2] = 0;
-    adj_copy[s1][e2] = 0;
-    adj_copy[e1][s2] = 0;
-    adj_copy[e1][e2] = 0;
-    adj_copy[s2][e2] = 0;
-
-    long long full = (1 << n) - 1;
-
-    // dp[mask][v] is true if some path visits exactly the vertices
-    // in mask and ends at vertex v
-    vector<vector<bool>> dp(1 << n, vector<bool>(n, false));
-    dp[1 << s1][s1] = true;
-    dp[1 << s2][s2] = true;
-
-    for (long long mask = 1; mask <= full; mask++) {
-        for (int v = 0; v < n; v++) {
-
-            // skip vertices that are not in the mask or cannot end a path
-            if (!((mask >> v) & 1) || !dp[mask][v])
-                continue;
-
-            // extend the path to an unused neighbour u
-            for (int u = 0; u < n; u++) {
-                if (!((mask >> u) & 1) && adj_copy[v][u])
-                    dp[mask | (1 << u)][u] = true;
-            }
-        }
-    }
-
-    for (long long mask1 = 1; mask1 <= full; mask1++){
-        if ((mask1 & (1 << s1)) && (mask1 & (1 << e1))){
-            long long mask2 = full ^ mask1;
-            if ((mask2 & (1 << s2)) && (mask2 & (1 << e2))){
-                if (dp[mask1][e1] && dp[mask2][e2]){
-                    return true;
-                }
+        if (!(mask & (1 << vert)) && !forbiden.contains(key)){
+            if (find_hamilton(vert, end, n, need_to_cover, not_covered_count - is_satisfied, forbiden, mask, adj_list)){
+                return true;
             }
         }
     }
@@ -192,43 +153,69 @@ bool check_double(int s1, int e1, int s2, int e2, long long n, vector<vector<int
     return false;
 }
 
-vector<string> solve(vector<int> square, vector<vector<int>> &adj_list, vector<vector<int>> &adj_matrix){
-    int n = adj_matrix.size();
+vector<string> solve_square(vector<int> square, vector<vector<int>> &adj_list){
+    int n = adj_list.size();
     vector<string> ans;
     int first = square[0];
     int second = square[1];
     int third = square[2];
     int fourth = square[3];
 
-    if (check_single(first, second, n, {third, fourth}, adj_matrix)){
+    unordered_set<string> need_to_cover;
+    unordered_set<string> forbiden;
+    for (int i = 0; i < 4; i++){
+        for (int j = 0; j < 4; j++){
+            forbiden.insert(to_string(square[i]) + ":" + to_string(square[j]));
+        }
+    }
+    if (find_hamilton(first, second, n, need_to_cover, 0, forbiden, (1<<third) | (1<<fourth), adj_list)){
         ans.push_back("[\"0:1\"]");
     }
-    if (check_single(first, third, n, {second, fourth}, adj_matrix)){
+    if (find_hamilton(first, third, n, need_to_cover, 0, forbiden, (1<<second) | (1<<fourth), adj_list)){
         ans.push_back("[\"0:2\"]");
     }
-    if (check_single(first, fourth, n, {second, third}, adj_matrix)){
+    if (find_hamilton(first, fourth, n, need_to_cover, 0, forbiden, (1<<second) | (1<<third), adj_list)){
         ans.push_back("[\"0:3\"]");
     }
-
-    if (check_single(second, third, n, {first, fourth}, adj_matrix)){
+    if (find_hamilton(second, third, n, need_to_cover, 0, forbiden, (1<<first) | (1<<fourth), adj_list)){
         ans.push_back("[\"1:2\"]");
     }
-    if (check_single(second, fourth, n, {first, third}, adj_matrix)){
+    if (find_hamilton(second, fourth, n, need_to_cover, 0, forbiden, (1<<first) | (1<<third), adj_list)){
         ans.push_back("[\"1:3\"]");
     }
-
-    if (check_single(third, fourth, n, {first, second}, adj_matrix)){
+    if (find_hamilton(third, fourth, n, need_to_cover, 0, forbiden, (1<<first) | (1<<second), adj_list)){
         ans.push_back("[\"2:3\"]");
     }
-
-    if (check_double(first, second, third, fourth, n, adj_matrix)){
+    
+    forbiden = {};
+    for (int i = 0; i < 3; i += 2){
+        for (int j = i + 1; j < 4; j += 2){
+            string v1 = to_string(square[i]);
+            string v2 = to_string(square[j]);
+            forbiden.insert(v1 + ":" + v2);
+            forbiden.insert(v2 + ":" + v1);
+        }
+    }
+    need_to_cover = {to_string(second) + ":" + to_string(third)};
+    if (find_hamilton(first, fourth, n, need_to_cover, 1, forbiden, 0, adj_list)){
         ans.push_back("[\"0:1\", \"2:3\"]");
     }
+    
     // because G is planar and jordan curve theorem, this can never happen
     /*if (check_double(first, third, second, fourth, n, adj_matrix)){
         ans.push_back("[\"0:2\", \"1:3\"]");
     }//*/
-    if (check_double(first, fourth, second, third, n, adj_matrix)){
+    forbiden = {};
+    for (int i = 0; i < 2; i++){
+        for (int j = i + 1; j < 4; j += 2){
+            string v1 = to_string(square[i]);
+            string v2 = to_string(square[j]);
+            forbiden.insert(v1 + ":" + v2);
+            forbiden.insert(v2 + ":" + v1);
+        }
+    }
+    need_to_cover = {to_string(fourth) + ":" + to_string(third)};
+    if (find_hamilton(first, second, n, need_to_cover, 1, forbiden, 0, adj_list)){
         ans.push_back("[\"0:3\", \"1:2\"]");
     }
 
@@ -322,7 +309,7 @@ int main(int argc, char *argv[]){
                                 cn = common_neighbours(v, other, adj_list, matrix);
                                 canon_code = vec_to_str(calc_canon_code({other, cn[0], v, cn[1]}, num, 3 * num, adj_list));
                                 if (!sols.contains(canon_code)){
-                                    sols[canon_code] = solve({other, cn[0], v, cn[1]}, adj_list, matrix);
+                                    sols[canon_code] = solve_square({other, cn[0], v, cn[1]}, adj_list);
                                 }
                             }
                         }
@@ -334,7 +321,7 @@ int main(int argc, char *argv[]){
                         cn = common_neighbours(neigh_8[0], neigh_8[1], adj_list, matrix);
                         canon_code = vec_to_str(calc_canon_code({neigh_8[0], cn[0], neigh_8[1], cn[1]}, num, 3 * num, adj_list));
                         if (!sols.contains(canon_code)){
-                            sols[canon_code] = solve({neigh_8[0], cn[0], neigh_8[1], cn[1]}, adj_list, matrix);
+                            sols[canon_code] = solve_square({neigh_8[0], cn[0], neigh_8[1], cn[1]}, adj_list);
                         }
                     }
                 }
@@ -346,7 +333,7 @@ int main(int argc, char *argv[]){
                 // not solving the same problem twice -> canonical codes
                 canon_code = vec_to_str(calc_canon_code(sqr, num, 3 * num, adj_list));
                 if (!sols.contains(canon_code)){
-                    sols[canon_code] = solve(sqr, adj_list, matrix);
+                    sols[canon_code] = solve_square(sqr, adj_list);
                 }
             }
         }
